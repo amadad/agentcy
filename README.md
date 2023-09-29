@@ -1,4 +1,4 @@
-# Multi-Agent Collaboration with AutoGen
+# Agentcy: Multi-Agent Collaboration with AutoGen
 
 <p align="center">
   <img src='./misc/logo1.png' width=600>
