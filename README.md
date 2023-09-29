@@ -26,7 +26,7 @@ Here are the agents involved in the collaboration:
 
 1. The `GroupChat` class is used to create a collaborative environment where all agents can communicate.
 2. The `GroupChatManager` manages the group chat, ensuring smooth communication between agents.
-3. The `initiate_chat` method is called to start the collaboration. In this example, the task is to plan a month-long trip to Bangkok.
+3. The `initiate_chat` method is called to start the collaboration. 
 
 ## ⚙️ Setup & Configuration
 
