@@ -1,3 +1,5 @@
 .venv
 .cache
 .env
+*workspace
+OAI_CONFIG_LIST
