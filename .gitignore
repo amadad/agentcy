@@ -3,5 +3,5 @@
 .env
 *workspace
 OAI_CONFIG_LIST
-autogen.code-workspace
+*workspace
 .DS_Store

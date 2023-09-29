@@ -31,10 +31,21 @@ Here are the agents involved in the collaboration:
 ## ⚙️ Setup & Configuration
 
 1. Ensure you have the required libraries installed:
-pip install openai autogen
 
+```
+pip install openai autogen
+```
 
 2. Set up the OpenAI configuration list by either providing an environment variable `OAI_CONFIG_LIST` or specifying a file path.
+
+```
+[
+    {
+        "model": "gpt-3.5-turbo", #or whatever model you prefer
+        "api_key": "INSERT_HERE"
+    }
+]
+```
 
 3. Instantiate each agent with its unique name, configuration, and system message.
 
