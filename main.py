@@ -80,7 +80,8 @@ agency_director = autogen.AssistantAgent(
 )
 
 groupchat = autogen.GroupChat(agents=[
-    client, agency_researcher, agency_director, agency_marketer, agency_strategist, agency_director], messages=[], max_round=3)
+    client, agency_researcher, agency_strategist, agency_marketer, agency_manager, agency_director], messages=[], max_round=10)
+
 
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
 

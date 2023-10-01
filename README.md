@@ -33,7 +33,7 @@ Here are the agents involved in the collaboration:
 1. Ensure you have the required libraries installed:
 
 ```
-pip install openai autogen
+pip install pyautogen
 ```
 
 2. Set up the OpenAI configuration list by either providing an environment variable `OAI_CONFIG_LIST` or specifying a file path.
