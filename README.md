@@ -31,6 +31,10 @@ Here are the agents involved in the collaboration:
 2. The `GroupChatManager` manages the group chat, ensuring smooth communication between agents.
 3. The `initiate_chat` method is called to start the collaboration. 
 
+<p align="center">
+  <img src='./misc/flow.png' width=600>
+</p>
+
 ## ⚙️ Setup & Configuration
 
 1. Ensure you have the required libraries installed:
