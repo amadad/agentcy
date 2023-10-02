@@ -14,13 +14,16 @@ The code sets up a collaborative environment where multiple agents, each with it
 
 Here are the agents involved in the collaboration:
 
-1. **Client**: Represents the human user. Interacts with the planner to discuss and approve the plan.
-2. **Strategist**: Drafts strategic briefs that effectively position the client's brand in the market based on comprehensive research and insights.
-3. **Researcher**: Delves deep into understanding user pain points, identifies market opportunities, and analyzes prevailing market conditions.
-4. **Marketer**: Transforms strategy and insights into compelling marketable ideas that resonate with the target audience.
-5. **Manager**: Oversees the entire project lifecycle, ensuring all agents are effectively fulfilling their objectives and tasks on time.
-6. **Director**: Guides the creative vision of the project, ensuring ideas are unique, compelling, and meet the highest standards of excellence.
-
+1. **Client**: Represents the user. Interacts with the Account Manager to discuss and approve the plan.
+2. **Account Manager**: Nurtures the relationship between the agency and the client and ensures clear communication.
+3. **Strategist**: Drafts strategic briefs that effectively position the client's brand in the market based on comprehensive research and insights.
+4. **Researcher**: Delves deep into understanding user pain points, identifies market opportunities, and analyzes prevailing market conditions.
+5. **Marketer**: Transforms strategy and insights into compelling marketable ideas that resonate with the target audience.
+6. **Manager**: Oversees the entire project lifecycle, ensuring all agents are effectively fulfilling their objectives and tasks on time.
+7. **Designer**: Transforms strategic and marketing ideas into compelling visual narratives.
+8. **Copywriter**: Crafts compelling narratives and messages that align with the brand's strategy.
+9. **Media Planner**: Identifies the best mix of media channels to deliver advertising messages.
+10. **Director**: Guides the creative vision of the project, ensuring ideas are unique, compelling, and meet the highest standards of excellence.
 
 ## 🤝 Collaboration Flow
 

@@ -1,5 +1,9 @@
 import autogen
+import time 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
+
+# Import from research.py
+from research import search, scrape_website
 
 # Prompt the user for input
 user_task = input("Please enter the task for the new client's campaign brief: ")
@@ -11,7 +15,7 @@ client = autogen.UserProxyAgent(
     system_message="A human client. Interact with the planner to discuss the strategy. Plan execution needs to be approved by this client.",
     code_execution_config=False,
 )
-
+    
 agency_strategist = autogen.AssistantAgent(
     name="Agency_Strategist",
     llm_config={"config_list": config_list},
@@ -41,6 +45,29 @@ agency_researcher = autogen.AssistantAgent(
     '''
 )
 
+agency_designer = autogen.AssistantAgent(
+    name="Agency_Designer",
+    llm_config={"config_list": config_list},
+    system_message=f'''
+    You are the Lead Designer.
+    Your primary responsibility is to transform strategic and marketing ideas into compelling visual narratives.
+    Drawing from the direction given in {user_task}, craft designs, layouts, and visual assets that align with the brand's identity and resonate with its target audience.
+    Work closely with the Creative Director and Agency Marketer to ensure that your designs align with the creative vision and marketing objectives.
+    Your expertise will ensure that our client's brand is visually captivating and stands out in the market.
+    '''
+)
+
+agency_writer = autogen.AssistantAgent(
+    name="Agency_Copywriter",
+    llm_config={"config_list": config_list},
+    system_message=f'''
+    You are the Lead Copywriter.
+    Your primary role is to craft compelling narratives and messages that align with the brand's strategy and resonate with its audience.
+    Based on the strategic direction from {user_task}, create engaging content, from catchy headlines to in-depth articles, ensuring that the brand's voice is consistent and impactful.
+    Collaborate closely with the Agency Designer and Agency Marketer to ensure that text and visuals complement each other, creating a cohesive brand story.
+    '''
+)
+
 agency_marketer = autogen.AssistantAgent(
     name="Agency_Marketer",
     llm_config={"config_list": config_list},
@@ -51,6 +78,17 @@ agency_marketer = autogen.AssistantAgent(
     Your expertise will bridge the gap between strategy and execution, ensuring that the brand's message is not only clear but also captivating. It's essential that your ideas are both impactful and aligned with the brand's overall vision.
     Collaborate with other teams to ensure a cohesive approach, and always strive to push the boundaries of creativity to set our client's brand apart in the market.
     Work in tandem with the Agency Manager to ensure that marketing initiatives align with the project's milestones and timelines.
+    '''
+)
+
+agency_mediaplanner = autogen.AssistantAgent(
+    name="Agency_Media_Planner",
+    llm_config={"config_list": config_list},
+    system_message=f'''
+    You are the Lead Media Planner.
+    Your main responsibility is to identify the best mix of media channels to deliver an advertising message to a clients' target audience.
+    Using insights from {user_task}, strategize the most effective way to get a brand's message to its audience, whether it be through traditional media, digital platforms, or a combination of both.
+    Collaborate closely with the Marketer and Manager to ensure that campaigns are executed effectively and within budget.
     '''
 )
 
@@ -79,8 +117,21 @@ agency_director = autogen.AssistantAgent(
     '''
 )
 
+agency_accountmanager = autogen.AssistantAgent(
+    name="Agency_Account_Manager",
+    llm_config={"config_list": config_list},
+    system_message=f'''
+    You are the Account Manager.
+    Your primary responsibility is to nurture the relationship between the agency and the client, ensuring clear communication and understanding of the client's needs and feedback.
+    Act as a bridge between the client and the agency, facilitating collaboration, and ensuring that the project aligns with the client's expectations.
+    Regularly update the client on the project's status and ensure that their feedback is incorporated effectively.
+    Collaborate with the Agency Manager to ensure that timelines are met and deliverables are of the highest quality.
+    '''
+)
+
+
 groupchat = autogen.GroupChat(agents=[
-    client, agency_researcher, agency_strategist, agency_marketer, agency_manager, agency_director], messages=[], max_round=10)
+    client, agency_researcher, agency_strategist, agency_writer, agency_designer, agency_mediaplanner, agency_marketer, agency_manager, agency_director, agency_accountmanager], messages=[], max_round=20)
 
 
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
