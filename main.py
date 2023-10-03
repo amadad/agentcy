@@ -1,9 +1,11 @@
 import autogen
 import time 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
+#from research import search, scrape_website
+import logging
+import os
 
-# Import from research.py
-from research import search, scrape_website
+autogen.ChatCompletion.start_logging()
 
 # Prompt the user for input
 user_task = input("Please enter the task for the new client's campaign brief: ")
@@ -142,3 +144,6 @@ client.initiate_chat(
     {user_task}
     """,
 )
+
+with open('logs/output.md', 'w') as f:
+    f.write(str(autogen.ChatCompletion.logged_history))
