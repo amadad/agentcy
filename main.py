@@ -1,16 +1,255 @@
-import autogen
-import time 
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
-#from research import search, scrape_website
-import logging
 import os
+import time
+import json
+import requests
+import openai
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+import autogen
+from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
+from langchain.agents import initialize_agent
+from langchain.chat_models import ChatOpenAI
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains.summarize import load_summarize_chain
+from langchain.prompts import PromptTemplate 
+
+# Load environment variables and start logging
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+BROWSERLESS_API_KEY = os.getenv("BROWSERLESS_API_KEY")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 
 autogen.ChatCompletion.start_logging()
 
 # Prompt the user for input
-user_task = input("Please enter the task for the new client's campaign brief: ")
-
+user_task = input("Please enter your brand brief: ")
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+
+def search(query):
+    url = "https://google.serper.dev/search"
+
+    payload = json.dumps({
+        "q": query
+    })
+    headers = {
+        'X-API-KEY': SERPER_API_KEY,
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    return response.json()
+
+
+def scrape(url: str):
+    # scrape website, and also will summarize the content based on objective if the content is too large
+    # objective is the original objective & task that user give to the agent, url is the url of the website to be scraped
+
+    print("Scraping website...")
+    # Define the headers for the request
+    headers = {
+        'Cache-Control': 'no-cache',
+        'Content-Type': 'application/json',
+    }
+
+    # Define the data to be sent in the request
+    data = {
+        "url": url
+    }
+
+    # Convert Python object to JSON string
+    data_json = json.dumps(data)
+
+    # Send the POST request
+    response = requests.post(
+        "https://chrome.browserless.io/content?token=2db344e9-a08a-4179-8f48-195a2f7ea6ee", headers=headers, data=data_json)
+
+    # Check the response status code
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, "html.parser")
+        text = soup.get_text()
+        print("CONTENTTTTTT:", text)
+        if len(text) > 8000:
+            output = summary(text)
+            return output
+        else:
+            return text
+    else:
+        print(f"HTTP request failed with status code {response.status_code}")
+
+
+def summary(content):
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k-0613")
+    text_splitter = RecursiveCharacterTextSplitter(
+        separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500)
+    docs = text_splitter.create_documents([content])
+    map_prompt = """
+    Write a detailed summary of the following text for a research purpose:
+    "{text}"
+    SUMMARY:
+    """
+    map_prompt_template = PromptTemplate(
+        template=map_prompt, input_variables=["text"])
+
+    summary_chain = load_summarize_chain(
+        llm=llm,
+        chain_type='map_reduce',
+        map_prompt=map_prompt_template,
+        combine_prompt=map_prompt_template,
+        verbose=True
+    )
+
+    output = summary_chain.run(input_documents=docs,)
+
+    return output
+
+def research(query):
+    llm_config_researcher = {
+        "functions": [
+            {
+                "name": "search",
+                "description": "google search for relevant information",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Google search query",
+                        }
+                    },
+                    "required": ["query"],
+                },
+            },
+            {
+                "name": "scrape",
+                "description": "Scraping website content based on url",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Website url to scrape",
+                        }
+                    },
+                    "required": ["url"],
+                },
+            },
+        ],
+        "config_list": config_list}
+
+    researcher = autogen.AssistantAgent(
+        name="researcher",
+        system_message="Research about a given query, collect as many information as possible, and generate detailed research results with loads of technique details with all reference links attached; Add TERMINATE to the end of the research report;",
+        llm_config=llm_config_researcher,
+    )
+
+    client = autogen.UserProxyAgent(
+        name="client",
+        code_execution_config={"last_n_messages": 2, "work_dir": "coding"},
+        is_termination_msg=lambda x: x.get("content", "") and x.get(
+            "content", "").rstrip().endswith("TERMINATE"),
+        human_input_mode="TERMINATE",
+        function_map={
+            "search": search,
+            "scrape": scrape,
+        }
+    )
+
+    client.initiate_chat(researcher, message=query)
+
+    # set the receiver to be researcher, and get a summary of the research report
+    client.stop_reply_at_receive(researcher)
+    client.send(
+        "Give me the research report that just generated again, return ONLY the report & reference links", researcher)
+
+    # return the last message the expert received
+    return client.last_message()["content"]
+
+
+# Define write content function
+def write_content(research_material, topic):
+    editor = autogen.AssistantAgent(
+        name="editor",
+        system_message="You are a senior editor of an AI blogger, you will define the structure of a short blog post based on material provided by the researcher, and give it to the writer to write the blog post",
+        llm_config={"config_list": config_list},
+    )
+
+    writer = autogen.AssistantAgent(
+        name="writer",
+        system_message="You are a professional AI blogger who is writing a blog post about AI, you will write a short blog post based on the structured provided by the editor, and feedback from reviewer; After 2 rounds of content iteration, add TERMINATE to the end of the message",
+        llm_config={"config_list": config_list},
+    )
+
+    reviewer = autogen.AssistantAgent(
+        name="reviewer",
+        system_message="You are a world class hash tech blog content critic, you will review & critic the written blog and provide feedback to writer.After 2 rounds of content iteration, add TERMINATE to the end of the message",
+        llm_config={"config_list": config_list},
+    )
+
+    client = autogen.UserProxyAgent(
+        name="admin",
+        system_message="A human admin. Interact with editor to discuss the structure. Actual writing needs to be approved by this admin.",
+        code_execution_config=False,
+        is_termination_msg=lambda x: x.get("content", "") and x.get(
+            "content", "").rstrip().endswith("TERMINATE"),
+        human_input_mode="TERMINATE",
+    )
+
+    groupchat = autogen.GroupChat(
+        agents=[client, editor, writer, reviewer],
+        messages=[],
+        max_round=20)
+    manager = autogen.GroupChatManager(groupchat=groupchat)
+
+    client.initiate_chat(
+        manager, message=f"Write a blog about {topic}, here are the material: {research_material}")
+
+    client.stop_reply_at_receive(manager)
+    client.send(
+        "Give me the blog that just generated again, return ONLY the blog, and add TERMINATE in the end of the message", manager)
+
+    # return the last message the expert received
+    return client.last_message()["content"]
+
+
+# Define content assistant agent
+llm_config_content_assistant = {
+    "functions": [
+        {
+            "name": "research",
+            "description": "research about a given topic, return the research material including reference links",
+            "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The topic to be researched about",
+                        }
+                    },
+                "required": ["query"],
+            },
+        },
+        {
+            "name": "write_content",
+            "description": "Write content based on the given research material & topic",
+            "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "research_material": {
+                            "type": "string",
+                            "description": "research material of a given topic, including reference links when available",
+                        },
+                        "topic": {
+                            "type": "string",
+                            "description": "The topic of the content",
+                        }
+                    },
+                "required": ["research_material", "topic"],
+            },
+        },
+    ],
+    "config_list": config_list}
 
 client = autogen.UserProxyAgent(
     name="Client",
@@ -39,12 +278,18 @@ agency_researcher = autogen.AssistantAgent(
     system_message=f'''
     You are the Lead Researcher. 
     Your primary responsibility is to delve deep into understanding user pain points, identifying market opportunities, and analyzing prevailing market conditions.
-    Using the information from {user_task}, conduct thorough research to uncover insights that can guide our strategic decisions. Your findings should shed light on user behaviors, preferences, and challenges.
+    Using the information from {user_task}, conduct thorough research to uncover insights that can guide our strategic decisions. 
+    Your findings should shed light on user behaviors, preferences, and challenges.
+    Use the research function to collect the latest information about a given topic, and then use the write_content function to write a very well-written content. 
     Additionally, assess the competitive landscape to identify potential gaps and opportunities for our client's brand. 
     Your research will be pivotal in shaping the brand's direction and ensuring it resonates with its target audience.
     Ensure that your insights are both comprehensive and actionable, providing a clear foundation for our subsequent strategic initiatives.
     Share your research findings with the Agency Strategist and Agency Marketer to inform the strategic and marketing initiatives.
-    '''
+    Reply TERMINATE when your task is done.
+    ''',
+    function_map={
+        "research": research
+    }
 )
 
 agency_designer = autogen.AssistantAgent(
@@ -67,8 +312,19 @@ agency_writer = autogen.AssistantAgent(
     Your primary role is to craft compelling narratives and messages that align with the brand's strategy and resonate with its audience.
     Based on the strategic direction from {user_task}, create engaging content, from catchy headlines to in-depth articles, ensuring that the brand's voice is consistent and impactful.
     Collaborate closely with the Agency Designer and Agency Marketer to ensure that text and visuals complement each other, creating a cohesive brand story.
-    '''
+    You can use the research function to collect the latest information about a given topic, and then use the write_content function to write a very well-written content. Reply TERMINATE when your task is done.
+    ''',
+    function_map={
+        "write_content": write_content,
+        "research": research,
+    }
 )
+
+#writing_assistant = autogen.AssistantAgent(
+#    name="writing_assistant",
+#    system_message="You are a writing assistant, you can use research function to collect latest information about a given topic, and then use write_content function to write a very well written content; Reply TERMINATE when your task is done",
+#    llm_config=llm_config_content_assistant,
+#)
 
 agency_marketer = autogen.AssistantAgent(
     name="Agency_Marketer",
@@ -131,10 +387,8 @@ agency_accountmanager = autogen.AssistantAgent(
     '''
 )
 
-
 groupchat = autogen.GroupChat(agents=[
     client, agency_researcher, agency_strategist, agency_writer, agency_designer, agency_mediaplanner, agency_marketer, agency_manager, agency_director, agency_accountmanager], messages=[], max_round=20)
-
 
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
 
@@ -143,6 +397,15 @@ client.initiate_chat(
     message=f"""
     {user_task}
     """,
+)
+
+client = autogen.UserProxyAgent(
+    name="client",
+    human_input_mode="TERMINATE",
+    function_map={
+        "write_content": write_content,
+        "research": research,
+    }
 )
 
 with open('logs/output.md', 'w') as f:
