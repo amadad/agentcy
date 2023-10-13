@@ -1,7 +1,7 @@
 # Agentcy: Multi-Agent Collaboration with AutoGen
 
 <p align="center">
-  <img src='./misc/logo1.png' width=600>
+  <img src='./misc/logo1.png' width=888>
 </p>
 
 This code demonstrates the power of multi-agent collaboration using the [AutoGen library](https://github.com/microsoft/autogen). Instead of relying on a single agent to handle tasks, multiple specialized agents work together, each bringing its expertise to the table.
@@ -34,7 +34,7 @@ The agents involved in the collaboration include:
 3. The `initiate_chat` method kickstarts the collaboration process. 
 
 <p align="center">
-  <img src='./misc/flow.png' width=600>
+  <img src='./misc/flow.png' width=888>
 </p>
 
 ## ⚙️ Setup & Configuration
