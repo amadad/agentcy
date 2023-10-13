@@ -6,3 +6,8 @@ OAI_CONFIG_LIST
 *workspace
 .DS_Store
 logs/*
+chat.py
+content.py
+functions.py
+research.py
+test.py
