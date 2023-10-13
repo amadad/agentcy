@@ -4,7 +4,8 @@
   <img src='./misc/logo1.png' width=600>
 </p>
 
-This code demonstrates the power of multi-agent collaboration using the AutoGen library. Instead of relying on a single agent to handle tasks, multiple specialized agents work together, each bringing its expertise to the table.
+This code demonstrates the power of multi-agent collaboration using the [AutoGen library](https://github.com/microsoft/autogen). Instead of relying on a single agent to handle tasks, multiple specialized agents work together, each bringing its expertise to the table.
+
 
 ## 📖 Overview
 
@@ -79,4 +80,4 @@ This multi-agent collaboration approach allows for more comprehensive and effici
 
 ## 📝 License 
 
-MIT License. See LICENSE for more information.
+MIT License. See [LICENSE](https://opensource.org/license/mit/) for more information.
