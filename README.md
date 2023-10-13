@@ -69,7 +69,7 @@ python3 main.py
 
 ## ⏯️ Conclusion
 
-This multi-agent collaboration approach allows for more comprehensive and efficient task handling. By leveraging the expertise of multiple agents, we can ensure that every aspect of a task is addressed by the most qualified entity. Whether it's planning a trip, as demonstrated in this example, or any other task, this collaborative approach can be adapted to fit various scenarios.
+In the realm of creative agencies, the multi-agent collaboration approach revolutionizes the way projects are handled. By tapping into the distinct expertise of various agency roles, from strategists to media planners, we can guarantee that each facet of a project is managed by those best suited for the task. This methodology not only ensures precision and efficiency but also showcases its versatility, as it can be tailored to suit diverse project requirements, whether it's brand positioning, content creation, or any other creative endeavor.
 
 ## 📈 Roadmap
 
@@ -77,6 +77,7 @@ This multi-agent collaboration approach allows for more comprehensive and effici
 2. Reduce unnecessaery back and forth
 3. Save files to local folder
 4. Implement other agents, see commented out agents
+6. Create and train fine-tuned agents for each domain specific task
 
 ## 📝 License 
 
