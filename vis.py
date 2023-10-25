@@ -9,6 +9,7 @@ import base64
 from dotenv import load_dotenv
 import os
 
+load_dotenv()
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 llm_config = {"config_list": config_list, "request_timeout": 120}
 
