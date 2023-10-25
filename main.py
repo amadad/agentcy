@@ -34,7 +34,6 @@ def format_for_markdown(content):
     formatted_content += content.replace("\n", "\n- ")  # Replace newlines with bullet points
     return formatted_content
 
-
 # Define research function
 def search(query):
     url = "https://google.serper.dev/search"
@@ -171,9 +170,6 @@ def research(query):
     # Save the research report
     save_to_file(formatted_report, "research_report")
 
-    # return the last message the expert received
-    return user_proxy.last_message()["content"]
-
     # set the receiver to be researcher, and get a summary of the research report
     user_proxy.stop_reply_at_receive(researcher)
     user_proxy.send(
@@ -282,12 +278,6 @@ llm_config_content_assistant = {
     ],
     "config_list": config_list}
 
-""" client = autogen.UserProxyAgent(
-    name="Client",
-    system_message="A human client. Interact with the planner to discuss the strategy. Plan execution needs to be approved by this client.",
-    code_execution_config=False,
-) """
-
 agency_strategist = autogen.AssistantAgent(
     name="Agency_Strategist",
     llm_config={"config_list": config_list},
@@ -301,16 +291,20 @@ agency_strategist = autogen.AssistantAgent(
     Ensure that the brief is both insightful and actionable, setting a clear path for the brand's journey ahead.
     Collaborate with the Agency Researcher to ensure that the strategic brief is grounded in solid research and insights.
     Be concise and not verbose. Refrain from any conversations that don't serve the goal of the user.
-    '''
+    ''',
+    function_map={
+        "research": research
+    }
 )
+
 agency_researcher = autogen.AssistantAgent(
     name="Agency_Researcher",
     llm_config={"config_list": config_list},
     system_message=f'''
     You are the Lead Researcher. 
+    You must use the research function to provide a topic for the writing_assistant in order to get up to date information outside of your knowledge cutoff
     Your primary responsibility is to delve deep into understanding user pain points, identifying market opportunities, and analyzing prevailing market conditions.
     Using the information from {user_task}, conduct thorough research to uncover insights that can guide our strategic decisions. 
-    use the research function to provide a topic for the writing_assistant
     Your findings should shed light on user behaviors, preferences, and challenges.
     Additionally, assess the competitive landscape to identify potential gaps and opportunities for our client's brand. 
     Your research will be pivotal in shaping the brand's direction and ensuring it resonates with its target audience.
@@ -340,12 +334,12 @@ agency_writer = autogen.AssistantAgent(
 
 writing_assistant = autogen.AssistantAgent(
     name="writing_assistant",
+    llm_config=llm_config_content_assistant,
     system_message=f'''You are a writing assistant, you can use research function to collect latest information about a given topic, 
     and then use write_content function to write a very well written content;
     Reply TERMINATE when your task is done
     Be concise and not verbose. Refrain from any conversations that don't serve the goal of the user.
     ''',
-    llm_config=llm_config_content_assistant,
 )
 
 agency_marketer = autogen.AssistantAgent(
@@ -428,13 +422,13 @@ user_proxy = autogen.UserProxyAgent(
     name="User_proxy",
     human_input_mode="TERMINATE",
     function_map={
-        "write_content": write_content,
+        #"write_content": write_content,
         "research": research,
     }
 )
 
 groupchat = autogen.GroupChat(agents=[
-    user_proxy, writing_assistant, agency_researcher, agency_strategist, agency_writer, agency_mediaplanner, agency_marketer, agency_manager, agency_director], messages=[], max_round=20)
+    user_proxy, agency_manager, agency_researcher, agency_strategist, agency_writer, writing_assistant, agency_marketer, agency_mediaplanner, agency_director], messages=[], max_round=20)
 
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
 
