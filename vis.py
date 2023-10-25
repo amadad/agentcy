@@ -12,45 +12,7 @@ import os
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 llm_config = {"config_list": config_list, "request_timeout": 120}
 
-replicate_api_token = os.environ.get('REPLICATE_API_TOKEN')
-if replicate_api_token:
-    print("Token:", replicate_api_token)
-else:
-    print("REPLICATE_API_TOKEN is not set!")
-
-
 # function to use llava model to review image
-def img_review(image_url, prompt):
-    data = {
-        "data": [
-            {
-                "image": "https://picsum.photos/200",
-                "features": [],
-            },
-        ]}
-
-    headers = {
-        "x-api-key": "token 8uOw4ntevc8JKo0Q3tQq:2975e2827ebeb4e103f7b58c1410ba58fa47bc27b1302de614a000bf51bd2114",
-        "content-type": "application/json",
-    }
-
-    connection = http.client.HTTPSConnection("api.scenex.jina.ai")
-    connection.request("POST", "/v1/describe", json.dumps(data), headers)
-    response = connection.getresponse()
-
-    print(response.status, response.reason)
-    response_data = response.read().decode("utf-8")
-    print(response_data)
-
-    connection.close()
-
-    return response_data
-
-
-result = img_review(
-    "https://cdn.discordapp.com/attachments/1083723388712919182/1089909178266558554/HannaD_A_captivating_digital_artwork_features_a_red-haired_girl_664d73dc-b537-490e-b044-4fbf22733559.png", "a llama driving a car")
-print(result)
-
 def img_review(image_path, prompt):
     output = replicate.run(
         "yorickvp/llava-13b:2facb4a474a0462c15041b78b1ad70952ea46b5ec6ad29583c0b29dbd4249591",
@@ -172,4 +134,4 @@ manager = autogen.GroupChatManager(
 
 # Start the conversation
 user_proxy.initiate_chat(
-    manager, message="Generate a post-modern design composition 16x9")
+    manager, message="Holographic oil ink pattern abstract ")
