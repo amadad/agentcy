@@ -11,33 +11,26 @@ from langchain.chains.summarize import load_summarize_chain
 from langchain.prompts import PromptTemplate 
 import openai
 from dotenv import load_dotenv
+import langchain.globals
 
 # Load environment variables
 load_dotenv()
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
-openai.api_key = os.getenv("OPENAI_API_KEY")
 BROWSERLESS_API_KEY = os.getenv("BROWSERLESS_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 autogen.ChatCompletion.start_logging()
 brand_task = input("Please enter the brand or company name: ")
 user_task = input("Please enter the your goal, brief, or problem statement: ")
+problem_task = ""
 
-def save_to_file(content, filename):
-    if not filename.endswith(".md"):
-        filename += ".md"
-    with open(filename, 'w', encoding='utf-8') as file:
-        file.write(content) 
+my_cache_value = {...} 
+langchain.globals.set_llm_cache(my_cache_value)
+cache = langchain.globals.get_llm_cache()
 
-def format_for_markdown(content):
-    formatted_content = "# Research Report\n\n"  # Markdown header
-    formatted_content += content.replace("\n", "\n- ")  # Replace newlines with bullet points
-    return formatted_content
-
-# Define research function
 def search(query):
     url = "https://google.serper.dev/search"
-
     payload = json.dumps({
         "q": query
     })
@@ -45,34 +38,22 @@ def search(query):
         'X-API-KEY': SERPER_API_KEY,
         'Content-Type': 'application/json'
     }
-
     response = requests.request("POST", url, headers=headers, data=payload)
-
     return response.json()
-
 
 def scrape(url: str):
     """Scrape a website and summarize its content if it's too large."""
     print("Scraping website...")
-    
-    # Define the headers for the request
     headers = {
         'Cache-Control': 'no-cache',
         'Content-Type': 'application/json',
     }
-    
-    # Build the POST URL
     post_url = f"https://chrome.browserless.io/content?token={BROWSERLESS_API_KEY}"
-    
-    # Send the POST request
     response = requests.post(post_url, headers=headers, json={"url": url})
-
-    # Check the response status code
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, "html.parser")
         text = soup.get_text()
         print("CONTENTTTTTT:", text)
-        
         if len(text) > 8000:
             output = summary(text)
             return output
@@ -93,7 +74,6 @@ def summary(content):
     """
     map_prompt_template = PromptTemplate(
         template=map_prompt, input_variables=["text"])
-
     summary_chain = load_summarize_chain(
         llm=llm,
         chain_type='map_reduce',
@@ -101,9 +81,7 @@ def summary(content):
         combine_prompt=map_prompt_template,
         verbose=True
     )
-
     output = summary_chain.run(input_documents=docs,)
-
     return output
 
 def research(query):
@@ -163,22 +141,11 @@ def research(query):
     )
 
     user_proxy.initiate_chat(research_assistant, message=query)
-
-    # Format for markdown (optional step)
-    formatted_report = format_for_markdown(user_proxy.last_message()["content"])
-
-    # Save the research report
-    save_to_file(formatted_report, "research_report")
-
-    # set the receiver to be researcher, and get a summary of the research report
     user_proxy.stop_reply_at_receive(research_assistant)
     user_proxy.send(
         "Give me the research report that just generated again, return ONLY the report & reference links.", research_assistant)
-
-    # return the last message the expert received
     return user_proxy.last_message()["content"]
 
-# Define write content function
 def write_content(research_material, topic):
     editor = autogen.AssistantAgent(
         name="editor",
@@ -235,12 +202,8 @@ def write_content(research_material, topic):
     user_proxy.stop_reply_at_receive(manager)
     user_proxy.send(
         "Give me the blog that just generated again, return ONLY the blog, and add TERMINATE in the end of the message", manager)
-
-    # return the last message the expert received
     return user_proxy.last_message()["content"]
 
-
-# Define content assistant agent
 llm_config_content_assistant = {
     "functions": [
         {
@@ -278,19 +241,25 @@ llm_config_content_assistant = {
     ],
     "config_list": config_list}
 
+agency_manager = autogen.AssistantAgent(
+    name="Agency_Manager",
+    llm_config={"config_list": config_list},
+    system_message=f'''
+    You are the Project Manager. Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
+    Rewrite and reframe the {user_task} for {brand_task} as {problem_task}.
+    Think step by step. Your primary responsibility is to oversee the entire project lifecycle, ensuring that all agents are effectively fulfilling their objectives.
+    Reply TERMINATE when your task is done.
+    '''
+)
+
 agency_strategist = autogen.AssistantAgent(
     name="Agency_Strategist",
     llm_config={"config_list": config_list},
     system_message=f'''
-    You are the Lead Strategist.
-    Your primary responsibility is to draft strategic briefs that effectively position our client's brand in the market.
-    Based on the information provided for {brand_task} on {user_task}, your task is to craft a comprehensive strategic brief that outlines the brand's positioning, key messages, and strategic initiatives.
-    The brief should delve deep into the brand's unique value proposition, target audience, and competitive landscape. 
-    It should also provide clear directives on how the brand should be perceived and the emotions it should evoke.
-    Once you've drafted the brief, it will be reviewed and iterated upon based on feedback from the client and our internal team. 
-    Ensure that the brief is both insightful and actionable, setting a clear path for the brand's journey ahead.
-    Collaborate with the Agency Researcher to ensure that the strategic brief is grounded in solid research and insights.
-    Be concise and not verbose. Refrain from any conversations that don't serve the goal of the user.
+    You are the Lead Strategist. Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
+    Draft a strategic brief that effectively positions {brand_task} for {problem_task}.
+    Think step by step. Use the research function to search to delevop {brand_task}'s unique value proposition, target audience, and competitive landscape. 
+    Reply TERMINATE when your task is done.
     ''',
     function_map={
         "research": research
@@ -299,18 +268,13 @@ agency_strategist = autogen.AssistantAgent(
 
 agency_researcher = autogen.AssistantAgent(
     name="Agency_Researcher",
-    llm_config={"config_list": config_list},
+    llm_config=llm_config_content_assistant,
     system_message=f'''
-    You are the Lead Researcher. 
-    You must use the research function to provide a topic for the writing_assistant in order to get up to date information outside of your knowledge cutoff
-    Your primary responsibility is to delve deep into understanding user pain points, identifying market opportunities, and analyzing prevailing market conditions.
-    Using the information from {user_task}, conduct thorough research to uncover insights that can guide our strategic decisions. 
-    Your findings should shed light on user behaviors, preferences, and challenges.
-    Additionally, assess the competitive landscape to identify potential gaps and opportunities for our client's brand. 
-    Your research will be pivotal in shaping the brand's direction and ensuring it resonates with its target audience.
-    Ensure that your insights are both comprehensive and actionable, providing a clear foundation for our subsequent strategic initiatives.
-    Share your research findings with the Agency Strategist and Agency Marketer to inform the strategic and marketing initiatives.
-    Be concise and not verbose. Refrain from any conversations that don't serve the goal of the user.
+    You are the Lead Researcher, you can use the research function to search to delevop {problem_task}'s user pain points, identifying market opportunities, and analyzing prevailing market conditions. 
+    Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
+    Draft a research report that effectively contextualizes {brand_task} for {problem_task}.
+    Think step by step. 
+    Reply TERMINATE when your task is done.
     ''',
     function_map={
         "research": research
@@ -321,11 +285,11 @@ agency_writer = autogen.AssistantAgent(
     name="Agency_Copywriter",
     llm_config={"config_list": config_list},
     system_message=f'''
-    You are the Lead Copywriter.
-    Your primary role is to craft compelling narratives and messages that align with the brand's strategy and resonate with its audience.
-    Based on the strategic direction from {user_task}, create engaging content, from catchy headlines to in-depth articles, ensuring that the brand's voice is consistent and impactful.
-    Collaborate closely with the Agency Designer and Agency Marketer to ensure that text and visuals complement each other, creating a cohesive brand story.
-    Be concise and not verbose. Refrain from any conversations that don't serve the goal of the user.
+    You are the Lead Copywriter, you can use research function to collect latest information about {brand_task} and {problem_task}.
+    Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
+    Craft a compelling narrative framework and message map that align with the {brand_task}'s strategy and resonate with its audience. 
+    Use appropriate persuasive principles: Reciprocity, Scarcity, Authority, Commitment, consistency, Consensus/Social proof, Liking.
+    Reply TERMINATE when your task is done.
     ''',
     function_map={
         "write_content": write_content
@@ -335,10 +299,10 @@ agency_writer = autogen.AssistantAgent(
 writing_assistant = autogen.AssistantAgent(
     name="writing_assistant",
     llm_config=llm_config_content_assistant,
-    system_message=f'''You are a writing assistant, you can use research function to collect latest information about a given topic, 
-    and then use write_content function to write a very well written content;
+    system_message=f'''
+    You are a writing assistant, you can use research function to collect latest information about a given topic, 
+    and then use write_content function to write  persuasive copy using principles: Reciprocity, Scarcity, Authority, Commitment, consistency, Consensus/Social proof, Liking.
     Reply TERMINATE when your task is done
-    Be concise and not verbose. Refrain from any conversations that don't serve the goal of the user.
     ''',
     function_map={
         "research": research
@@ -349,13 +313,10 @@ agency_marketer = autogen.AssistantAgent(
     name="Agency_Marketer",
     llm_config={"config_list": config_list},
     system_message=f'''
-    You are the Lead Marketer. Be concise and avoid pleasantries. Refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Your primary role is to take the strategy and insights derived from research and transform them into compelling marketable ideas that resonate with the target audience.
-    Using the strategic direction from {user_task}, craft innovative marketing campaigns, promotions, and initiatives that effectively communicate the brand's value proposition.
-    Your expertise will bridge the gap between strategy and execution, ensuring that the brand's message is not only clear but also captivating. It's essential that your ideas are both impactful and aligned with the brand's overall vision.
-    Collaborate with other teams to ensure a cohesive approach, and always strive to push the boundaries of creativity to set our client's brand apart in the market.
-    Work in tandem with the Agency Manager to ensure that marketing initiatives align with the project's milestones and timelines.
-    
+    You are the Lead Marketer. Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
+    Select an appropriate marketing framework: 4P's of Marketing, STP (Segmentation, Targeting, Positioning), Ansoff Matrix, AIDA (Attention, Interest, Desire, Action), Customer Journey Mapping, Marketing Funnel.
+    Identify compelling ideas to deliver an advertising message for {brand_task} and {problem_task}.
+    Reply TERMINATE when your task is done    
     '''
 )
 
@@ -363,71 +324,18 @@ agency_mediaplanner = autogen.AssistantAgent(
     name="Agency_Media_Planner",
     llm_config={"config_list": config_list},
     system_message=f'''
-    You are the Lead Media Planner. Be concise and avoid pleasantries. Refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Your main responsibility is to identify the best mix of media channels to deliver an advertising message to a clients' target audience.
-    Using insights from {user_task}, strategize the most effective way to get a brand's message to its audience, whether it be through traditional media, digital platforms, or a combination of both.
-    Collaborate closely with the Marketer and Manager to ensure that campaigns are executed effectively and within budget.
+    You are the Lead Marketer. Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
+    Select an appropriate marketing framework: RACE (Reach, Act, Convert, Engage) Framework; See, Think, Do, Care (by Google); AIDA (Attention, Interest, Desire, Action); POEM (Paid, Owned, Earned Media); OST (Objectives, Strategy, Tactics):
+    Identify the best mix of media channels to deliver an advertising message for {brand_task} and {problem_task}.
+    Reply TERMINATE when your task is done    
     '''
 )
-
-agency_manager = autogen.AssistantAgent(
-    name="Agency_Manager",
-    llm_config={"config_list": config_list},
-    system_message=f'''
-    You are the Project Manager. Be concise and avoid pleasantries. Refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Your primary responsibility is to oversee the entire project lifecycle, ensuring that all agents are effectively fulfilling their objectives and tasks on time.
-    Based on the directives from {user_task}, coordinate with all involved agents, set clear milestones, and monitor progress. Ensure that user feedback is promptly incorporated, and any adjustments are made in real-time to align with the project's goals.
-    Act as the central point of communication, facilitating collaboration between teams and ensuring that all deliverables are of the highest quality. Your expertise is crucial in ensuring that the project stays on track, meets deadlines, and achieves its objectives.
-    Regularly review the project's status, address any challenges, and ensure that all stakeholders are kept informed of the project's progress.
-    Coordinate with the Agency Director for periodic reviews and approvals, ensuring that the project aligns with the creative vision.
-    '''
-)
-
-agency_director = autogen.AssistantAgent(
-    name="Agency_Director",
-    llm_config={"config_list": config_list},
-    system_message=f'''
-    You are the Creative Director at SCTY. Be concise and avoid pleasantries. Refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Your primary role is to guide the creative vision of the project, ensuring that all ideas are not only unique and compelling but also meet the highest standards of excellence and desirability.
-    Drawing from the insights of {user_task}, oversee the creative process, inspire innovation, and set the bar for what's possible. Challenge the team to think outside the box and push the boundaries of creativity.
-    Review all creative outputs, provide constructive feedback, and ensure that every piece aligns with the brand's identity and resonates with the target audience. 
-    Your expertise is pivotal in ensuring that our work stands out in the market and leaves a lasting impact.
-    Collaborate closely with all teams, fostering a culture of excellence, and ensuring that our creative solutions are both groundbreaking and aligned with the project's objectives.
-    Engage with the Agency Strategist and Agency Marketer to ensure that the creative outputs align with the strategic direction and marketable ideas.
-    '''
-)
-
-""" agency_accountmanager = autogen.AssistantAgent(
-    name="Agency_Account_Manager",
-    llm_config={"config_list": config_list},
-    system_message=f'''
-    You are the Account Manager.
-    Your primary responsibility is to nurture the relationship between the agency and the client, ensuring clear communication and understanding of the client's needs and feedback.
-    Act as a bridge between the client and the agency, facilitating collaboration, and ensuring that the project aligns with the client's expectations.
-    Regularly update the client on the project's status and ensure that their feedback is incorporated effectively.
-    Collaborate with the Agency Manager to ensure that timelines are met and deliverables are of the highest quality.
-    '''
-)
-
-agency_designer = autogen.AssistantAgent(
-    name="Agency_Designer",
-    llm_config={"config_list": config_list},
-    system_message=f'''
-    You are the Lead Designer.
-    Your primary responsibility is to transform strategic and marketing ideas into compelling visual narratives.
-    Drawing from the direction given in {user_task}, craft designs, layouts, and visual assets that align with the brand's identity and resonate with its target audience.
-    Work closely with the Creative Director and Agency Marketer to ensure that your designs align with the creative vision and marketing objectives.
-    Your expertise will ensure that our client's brand is visually captivating and stands out in the market.
-    '''
-) """
-
-
 
 user_proxy = autogen.UserProxyAgent(
     name="User_proxy",
     human_input_mode="TERMINATE",
     function_map={
-        #"write_content": write_content,
+        "write_content": write_content,
         "research": research,
     }
 )
@@ -440,10 +348,9 @@ user_proxy.register_function(
 )
 
 groupchat = autogen.GroupChat(agents=[
-    user_proxy, agency_manager, agency_researcher, agency_strategist, agency_writer, writing_assistant, agency_marketer, agency_mediaplanner, agency_director], messages=[], max_round=20)
+    user_proxy, agency_manager, agency_researcher, agency_strategist, agency_mediaplanner, agency_writer, writing_assistant, agency_marketer], messages=[], max_round=20)
 
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
-
 
 user_proxy.initiate_chat(
     manager, 
