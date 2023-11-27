@@ -13,7 +13,6 @@ import openai
 from dotenv import load_dotenv
 import langchain.globals
 
-# Load environment variables
 load_dotenv()
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 BROWSERLESS_API_KEY = os.getenv("BROWSERLESS_API_KEY")
@@ -128,7 +127,7 @@ def research(query):
         llm_config=llm_config_researcher,
     )
 
-    user_proxy = autogen.UserProxyAgent(
+    research_user_proxy = autogen.UserProxyAgent(
         name="User_proxy",
         code_execution_config={"last_n_messages": 2, "work_dir": "coding"},
         is_termination_msg=lambda x: x.get("content", "") and x.get(
@@ -155,7 +154,7 @@ def write_content(research_material, topic):
         Your role is to craft the structure of a short blog post using the material from the Research Assistant. Use your experience to ensure clarity, coherence, and precision. 
         Once structured, pass it to the Writer to pen the final piece.
         ''',
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list}
     )
 
     writer = autogen.AssistantAgent(
@@ -167,7 +166,7 @@ def write_content(research_material, topic):
         Approach the topic from a journalistic perspective; aim to inform and engage the readers without adopting a sales-oriented tone. 
         After two rounds of revisions, conclude your post with "TERMINATE".
         ''',
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list}
     )
 
     reviewer = autogen.AssistantAgent(
@@ -177,7 +176,7 @@ def write_content(research_material, topic):
         Your role is to meticulously review and critique the written blog, ensuring it meets the highest standards of clarity, coherence, and precision. 
         Provide invaluable feedback to the Writer to elevate the piece. After two rounds of content iteration, conclude with "TERMINATE".
         ''',        
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list}
     )
 
     user_proxy = autogen.UserProxyAgent(
@@ -243,24 +242,22 @@ llm_config_content_assistant = {
 
 agency_manager = autogen.AssistantAgent(
     name="Agency_Manager",
-    llm_config={"config_list": config_list},
     system_message=f'''
-    You are the Project Manager. Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Rewrite and reframe the {user_task} for {brand_task} as {problem_task}.
+    You are the Project Manager. Rewrite and reframe the {user_task} for {brand_task} as {problem_task}.
     Think step by step. Your primary responsibility is to oversee the entire project lifecycle, ensuring that all agents are effectively fulfilling their objectives.
     Reply TERMINATE when your task is done.
-    '''
+    ''',
+    llm_config={"config_list": config_list}
 )
 
 agency_strategist = autogen.AssistantAgent(
     name="Agency_Strategist",
-    llm_config={"config_list": config_list},
     system_message=f'''
-    You are the Lead Strategist. Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Draft a strategic brief that effectively positions {brand_task} for {problem_task}.
+    You are the Lead Strategist. Draft a strategic brief that effectively positions {brand_task} for {problem_task}.
     Think step by step. Use the research function to search to delevop {brand_task}'s unique value proposition, target audience, and competitive landscape. 
     Reply TERMINATE when your task is done.
     ''',
+    llm_config={"config_list": config_list},
     function_map={
         "research": research
     }
@@ -268,14 +265,13 @@ agency_strategist = autogen.AssistantAgent(
 
 agency_researcher = autogen.AssistantAgent(
     name="Agency_Researcher",
-    llm_config=llm_config_content_assistant,
     system_message=f'''
     You are the Lead Researcher, you can use the research function to search to delevop {problem_task}'s user pain points, identifying market opportunities, and analyzing prevailing market conditions. 
-    Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
     Draft a research report that effectively contextualizes {brand_task} for {problem_task}.
     Think step by step. 
     Reply TERMINATE when your task is done.
     ''',
+    llm_config={"config_list": llm_config_content_assistant},    
     function_map={
         "research": research
     }
@@ -283,14 +279,12 @@ agency_researcher = autogen.AssistantAgent(
 
 agency_writer = autogen.AssistantAgent(
     name="Agency_Copywriter",
-    llm_config={"config_list": config_list},
     system_message=f'''
     You are the Lead Copywriter, you can use research function to collect latest information about {brand_task} and {problem_task}.
-    Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Craft a compelling narrative framework and message map that align with the {brand_task}'s strategy and resonate with its audience. 
     Use appropriate persuasive principles: Reciprocity, Scarcity, Authority, Commitment, consistency, Consensus/Social proof, Liking.
     Reply TERMINATE when your task is done.
     ''',
+    llm_config={"config_list": config_list},
     function_map={
         "write_content": write_content
     }
@@ -298,12 +292,12 @@ agency_writer = autogen.AssistantAgent(
 
 writing_assistant = autogen.AssistantAgent(
     name="writing_assistant",
-    llm_config=llm_config_content_assistant,
     system_message=f'''
     You are a writing assistant, you can use research function to collect latest information about a given topic, 
-    and then use write_content function to write  persuasive copy using principles: Reciprocity, Scarcity, Authority, Commitment, consistency, Consensus/Social proof, Liking.
+    Use write_content function to write persuasive copy using principles: Reciprocity, Scarcity, Authority, Commitment, consistency, Consensus/Social proof, Liking.
     Reply TERMINATE when your task is done
     ''',
+    llm_config={"config_list": llm_config_content_assistant},  
     function_map={
         "research": research
     }
@@ -311,21 +305,19 @@ writing_assistant = autogen.AssistantAgent(
 
 agency_marketer = autogen.AssistantAgent(
     name="Agency_Marketer",
-    llm_config={"config_list": config_list},
     system_message=f'''
-    You are the Lead Marketer. Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Select an appropriate marketing framework: 4P's of Marketing, STP (Segmentation, Targeting, Positioning), Ansoff Matrix, AIDA (Attention, Interest, Desire, Action), Customer Journey Mapping, Marketing Funnel.
+    You are the Lead Marketer. Select an appropriate marketing framework: 4P's of Marketing, STP (Segmentation, Targeting, Positioning), Ansoff Matrix, AIDA (Attention, Interest, Desire, Action), Customer Journey Mapping, Marketing Funnel.
     Identify compelling ideas to deliver an advertising message for {brand_task} and {problem_task}.
     Reply TERMINATE when your task is done    
-    '''
+    ''',
+    llm_config={"config_list": config_list}
 )
 
 agency_mediaplanner = autogen.AssistantAgent(
     name="Agency_Media_Planner",
     llm_config={"config_list": config_list},
     system_message=f'''
-    You are the Lead Marketer. Be concise and refrain from any conversations that don't serve the goal of the user, ie. thank you.
-    Select an appropriate marketing framework: RACE (Reach, Act, Convert, Engage) Framework; See, Think, Do, Care (by Google); AIDA (Attention, Interest, Desire, Action); POEM (Paid, Owned, Earned Media); OST (Objectives, Strategy, Tactics):
+    You are the Lead Media Planner. Select an appropriate marketing framework: RACE (Reach, Act, Convert, Engage) Framework; See, Think, Do, Care (by Google); AIDA (Attention, Interest, Desire, Action); POEM (Paid, Owned, Earned Media); OST (Objectives, Strategy, Tactics):
     Identify the best mix of media channels to deliver an advertising message for {brand_task} and {problem_task}.
     Reply TERMINATE when your task is done    
     '''
@@ -333,6 +325,9 @@ agency_mediaplanner = autogen.AssistantAgent(
 
 user_proxy = autogen.UserProxyAgent(
     name="User_proxy",
+    code_execution_config=False,
+    is_termination_msg=lambda x: x.get("content", "") and x.get(
+            "content", "").rstrip().endswith("TERMINATE"),
     human_input_mode="TERMINATE",
     function_map={
         "write_content": write_content,

@@ -3,23 +3,32 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import autogen
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
+from autogen import OpenAIWrapper, config_list_from_json
 from langchain.agents import initialize_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.summarize import load_summarize_chain
 from langchain.prompts import PromptTemplate 
-import openai
+#import openai
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
-openai.api_key = os.getenv("OPENAI_API_KEY")
+config_list = autogen.config_list_from_dotenv(
+    dotenv_file_path='.env',
+    filter_dict={
+        "model": {
+            "gpt-4-1106-preview",
+            "gpt-4",
+        }
+    }
+)
+
+#openai.api_key = os.getenv("OPENAI_API_KEY")
+
 BROWSERLESS_API_KEY = os.getenv("BROWSERLESS_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
-autogen.ChatCompletion.start_logging()
 brand_task = input("Please enter the brand or company name: ")
 user_task = input("Please enter the your goal, brief, or problem statement: ")
 
@@ -421,13 +430,11 @@ agency_designer = autogen.AssistantAgent(
     '''
 ) """
 
-
-
 user_proxy = autogen.UserProxyAgent(
     name="User_proxy",
     human_input_mode="TERMINATE",
+    system_message="lease provide the necessary research input or task details to initiate the conversation and guide the agents in the project.",
     function_map={
-        #"write_content": write_content,
         "research": research,
     }
 )
@@ -444,10 +451,7 @@ groupchat = autogen.GroupChat(agents=[
 
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
 
-
 user_proxy.initiate_chat(
     manager, 
-    message=f"""
-    {user_task}
-    """,
+    message=user_task,
 )

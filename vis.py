@@ -13,6 +13,8 @@ load_dotenv()
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 llm_config = {"config_list": config_list, "request_timeout": 120}
 
+user_prompt = input("Describe an image and art direction: ")
+
 # function to use llava model to review image
 def img_review(image_path, prompt):
     output = replicate.run(
@@ -135,4 +137,8 @@ manager = autogen.GroupChatManager(
 
 # Start the conversation
 user_proxy.initiate_chat(
-    manager, message="Holographic oil ink pattern abstract ")
+    manager, 
+    message=f"""
+    {user_prompt}
+    """,
+)
