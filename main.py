@@ -3,47 +3,24 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import autogen
+import openai
 from autogen import OpenAIWrapper, config_list_from_json
 from langchain.agents import initialize_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.summarize import load_summarize_chain
 from langchain.prompts import PromptTemplate 
-#import openai
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
-config_list = autogen.config_list_from_dotenv(
-    dotenv_file_path='.env',
-    filter_dict={
-        "model": {
-            "gpt-4-1106-preview",
-            "gpt-4",
-        }
-    }
-)
-
-#openai.api_key = os.getenv("OPENAI_API_KEY")
-
+config_list = autogen.config_list_from_dotenv(dotenv_file_path='.env')
+openai.api_key = os.getenv("OPENAI_API_KEY")
 BROWSERLESS_API_KEY = os.getenv("BROWSERLESS_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
 brand_task = input("Please enter the brand or company name: ")
 user_task = input("Please enter the your goal, brief, or problem statement: ")
 
-def save_to_file(content, filename):
-    if not filename.endswith(".md"):
-        filename += ".md"
-    with open(filename, 'w', encoding='utf-8') as file:
-        file.write(content) 
-
-def format_for_markdown(content):
-    formatted_content = "# Research Report\n\n"  # Markdown header
-    formatted_content += content.replace("\n", "\n- ")  # Replace newlines with bullet points
-    return formatted_content
-
-# Define research function
 def search(query):
     url = "https://google.serper.dev/search"
 
@@ -58,7 +35,6 @@ def search(query):
     response = requests.request("POST", url, headers=headers, data=payload)
 
     return response.json()
-
 
 def scrape(url: str):
     """Scrape a website and summarize its content if it's too large."""
@@ -91,7 +67,7 @@ def scrape(url: str):
         print(f"HTTP request failed with status code {response.status_code}")
 
 def summary(content):
-    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k-0613")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-1106")
     text_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500)
     docs = text_splitter.create_documents([content])
@@ -149,13 +125,9 @@ def research(query):
         ],
         "config_list": config_list}
 
-    research_assistant = autogen.AssistantAgent(
-        name="research_assistant",
-        system_message=f'''
-        Welcome, Research Assistant.
-        Your task is to research the provided query extensively. 
-        Produce a detailed report, ensuring you include technical specifics and reference all sources. Conclude your report with "TERMINATE".
-        ''',
+    researcher = autogen.AssistantAgent(
+        name="researcher",
+        system_message="Research about a given query, collect as many information as possible, and generate detailed research results with loads of technique details with all reference links attached; Add TERMINATE to the end of the research report;",
         llm_config=llm_config_researcher,
     )
 
@@ -171,23 +143,14 @@ def research(query):
         }
     )
 
-    user_proxy.initiate_chat(research_assistant, message=query)
-
-    # Format for markdown (optional step)
-    formatted_report = format_for_markdown(user_proxy.last_message()["content"])
-
-    # Save the research report
-    save_to_file(formatted_report, "research_report")
-
-    # set the receiver to be researcher, and get a summary of the research report
-    user_proxy.stop_reply_at_receive(research_assistant)
+    user_proxy.initiate_chat(researcher, message=query)
+    user_proxy.stop_reply_at_receive(researcher)
     user_proxy.send(
-        "Give me the research report that just generated again, return ONLY the report & reference links.", research_assistant)
+        "Give me the research report that just generated again, return ONLY the report & reference links", researcher)
 
     # return the last message the expert received
     return user_proxy.last_message()["content"]
 
-# Define write content function
 def write_content(research_material, topic):
     editor = autogen.AssistantAgent(
         name="editor",
@@ -248,8 +211,6 @@ def write_content(research_material, topic):
     # return the last message the expert received
     return user_proxy.last_message()["content"]
 
-
-# Define content assistant agent
 llm_config_content_assistant = {
     "functions": [
         {
@@ -432,10 +393,13 @@ agency_designer = autogen.AssistantAgent(
 
 user_proxy = autogen.UserProxyAgent(
     name="User_proxy",
+    is_termination_msg=lambda x: x.get("content", "").strip().upper() == "TERMINATE",
     human_input_mode="TERMINATE",
-    system_message="lease provide the necessary research input or task details to initiate the conversation and guide the agents in the project.",
+    system_message="Provide the necessary research input. Save all output to markdown file",
+    code_execution_config={},
     function_map={
         "research": research,
+        "write_content": write_content
     }
 )
 

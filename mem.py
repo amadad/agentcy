@@ -1,24 +1,25 @@
 import os
+import requests
+from bs4 import BeautifulSoup
+import json
 import autogen
+from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
+from dotenv import load_dotenv
+# Import memgpt related modules
 import memgpt.autogen.memgpt_agent as memgpt_autogen
 import memgpt.autogen.interface as autogen_interface 
-import memgpt.agent as agent
-import memgpt.system as system
-import memgpt.utils as utils
 import memgpt.presets as presets
-import memgpt.constants as constants
-import memgpt.personas.personas as personas
-import memgpt.humans.humans as humans
-from memgpt.persistence_manager import InMemoryStateManager, InMemoryStateManagerWithPreloadedArchivalMemory, InMemoryStateManagerWithFaiss
-import openai
+from memgpt.persistence_manager import InMemoryStateManager
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Load environment variables
+load_dotenv()
 
-config_list = [
-    {
-        'model': 'gpt-4'
-    },
-]
+# Existing configuration
+config_list = autogen.config_list_from_dotenv(
+    dotenv_file_path='.env',
+    filter_dict={"model": {"gpt-4-1106-preview", "gpt-4"}}
+)
+llm_config = {"config_list": config_list}
 
 llm_config = {"config_list": config_list, "seed": 42}
 user_proxy = autogen.UserProxyAgent(
