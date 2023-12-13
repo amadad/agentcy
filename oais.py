@@ -13,10 +13,10 @@ from autogen import UserProxyAgent
 import autogen
 
 load_dotenv()
-config_list = autogen.config_list_from_dotenv(dotenv_file_path='.env')
-browserless_api_key = os.getenv("BROWSERLESS_API_KEY")
-serper_api_key = os.getenv("SERP_API_KEY")
-#config_list = config_list_from_json("OAI_CONFIG_LIST")
+#config_list = autogen.config_list_from_dotenv(dotenv_file_path='.env')
+BROWSERLESS_API_KEY = os.getenv("BROWSERLESS_API_KEY")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+config_list = config_list_from_json("OAI_CONFIG_LIST")
 
 user_task = input("Please enter the your goal, brief, or problem statement: ")
 
@@ -31,7 +31,7 @@ def google_search(search_keyword):
     })
 
     headers = {
-        'X-API-KEY': serper_api_key,
+        'X-API-KEY': SERPER_API_KEY,
         'Content-Type': 'application/json'
     }
 
@@ -81,7 +81,7 @@ def web_scraping(objective: str, url: str):
     data_json = json.dumps(data)
 
     # Send the POST request
-    response = requests.post(f"https://chrome.browserless.io/content?token={browserless_api_key}", headers=headers, data=data_json)
+    response = requests.post(f"https://chrome.browserless.io/content?token={BROWSERLESS_API_KEY}", headers=headers, data=data_json)
     
     # Check the response status code
     if response.status_code == 200:
@@ -145,4 +145,7 @@ group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"
 
 # ------------------ start conversation ------------------ #
 
-user_proxy.initiate_chat(group_chat_manager, message=user_task)
+user_proxy.initiate_chat(
+    group_chat_manager, 
+    message=user_task,
+)
