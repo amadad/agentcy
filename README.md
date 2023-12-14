@@ -76,7 +76,7 @@ Credit to [Jason Zhou's RAG example](https://github.com/JayZeeDesign/microsoft-a
 ## 📈 Roadmap
 
 1. Refine workflow and data pass through to agents
-2. Reduce unnecessaery back and forth
+2. Reduce unnecessary back and forth
 3. Save files to local folder
 4. Implement other agents, see commented out agents
 6. Create and train fine-tuned agents for each domain specific task
