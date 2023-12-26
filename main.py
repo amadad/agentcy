@@ -283,6 +283,12 @@ agency_researcher = AssistantAgent(
     }
 )
 
+agency_researcher.register_function(
+    function_map={
+        "research": research,
+    }
+)
+
 agency_strategist = AssistantAgent(
     name="Agency_Strategist",
     llm_config={"config_list": config_list},
