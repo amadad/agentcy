@@ -72,14 +72,14 @@ Credit to [Jason Zhou's RAG example](https://github.com/JayZeeDesign/microsoft-a
 
 ## 📈 Roadmap
 
-[x] (Refine workflow and data pass through to agents)
-[x] (Reduce unnecessary back and forth)
-[ ] (Implement alternative and local LLM models)
-[ ] (Save files to local folder)
-[ ] (Implement other agents, see commented out agents)
-[ ] (Create and train fine-tuned agents for each domain specific task)
-[ ] (Add more tools for agents to utilize)
-[ ] (Create UI for project)
+- [x] Refine workflow and data pass through to agents
+- [x] Reduce unnecessary back and forth
+- [ ] Implement alternative and local LLM models
+- [ ] Save files to local folder
+- [ ] Implement other agents, see commented out agents
+- [ ] Create and train fine-tuned agents for each domain specific task
+- [ ] Add more tools for agents to utilize
+- [ ] Create UI for project
 
 ## 📝 License 
 
