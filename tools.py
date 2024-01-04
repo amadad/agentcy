@@ -198,8 +198,8 @@ def write_content(research_material, topic):
         agents=[user_proxy, editor, writer, reviewer],
         messages=[],
         max_round=10)
+   
     manager = autogen.GroupChatManager(groupchat=groupchat)
-
     user_proxy.initiate_chat(
         manager, message=f"Write a blog about {topic}, here are the material: {research_material}")
 
@@ -209,7 +209,6 @@ def write_content(research_material, topic):
 
     # return the last message the expert received
     return user_proxy.last_message()["content"]
-
 
 def save_markdown(conversation_log):
     with open("/logs/conversation_log.md", "a") as file:

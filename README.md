@@ -1,37 +1,34 @@
-# Agentcy: Multi-Agent Collaboration with AutoGen
+# Agentcy: Multi-Agent Creative Collaboration
 
 <p align="center">
   <img src='./misc/logo1.png' width=888>
 </p>
 
-This code demonstrates the power of multi-agent collaboration using the [AutoGen library](https://github.com/microsoft/autogen). Instead of relying on a single agent to handle tasks, multiple specialized agents work together, each bringing its expertise to the table.
-
+A small team autonomous of agents help you unlock, uncover or explore the potential of your business. Agentcy takes two simple inputs to generate a plan, research and deliverables to help you gain a competitive advantahe.
 
 ## 📖 Overview
 
-The code sets up a collaborative environment where multiple agents, each with its unique role and expertise, come together to discuss, plan, and execute tasks. This collaboration ensures that different aspects of a task are handled by the most qualified agent, leading to more efficient and accurate outcomes.
+Modeled on advertising and creative agencies, you'll move from problem space to solution space with successive steps of research, writing, ideation and strategic planning. Agentcy uses the [AutoGen framework](https://github.com/microsoft/autogen) to orchestrate multiple agents to ensure that tasks are handled by the most qualified agent, leading to more efficient and accurate outcomes.
 
 ## 🕵🏽 Agents
 
 The agents involved in the collaboration include:
 
-1. **Agency Researcher**: Conducts research on user pain points, market opportunities, and prevailing market conditions.
+1. **Agency Manager**: Creates a plan and approach to tackle the problem or opportunity.
+2. **Agency Researcher**: Conducts research on user pain points, market opportunities, and prevailing market conditions.
 2. **Writing Assistant**: Utilizes research and content writing functions to generate content.
 3. **Agency Strategist**: Drafts strategic briefs for effective brand positioning in the market.
 4. **Agency Copywriter**: Crafts compelling narratives and messages that align with the brand's strategy.
 5. **Agency Media Planner**: Identifies the best mix of media channels for advertising.
 6. **Agency Marketer**: Transforms strategy and insights into marketable ideas.
-7. **Agency Manager**: Oversees the entire project lifecycle.
 8. **Agency Director**: Guides the creative vision of the project.
 9. **User Proxy**: Acts as an intermediary between the human user and the agents.
 
-(Note: Some agents from the original list like Designer and Account Manager were commented out in the provided code updates.)
+## 🛠️ Tools Used
 
-## 🤝 Collaboration Flow
-
-1. The `GroupChat` class establishes a collaborative environment for agent communication.
-2. The `GroupChatManager` oversees group chat, ensuring smooth agent interaction.
-3. The `initiate_chat` method kickstarts the collaboration process. 
+1. `Serper` for realtime web search
+2. `Browserless` for web scrape
+3. `Langchain` for content summarization 
 
 <p align="center">
   <img src='./misc/flow.png' width=888>
@@ -75,11 +72,14 @@ Credit to [Jason Zhou's RAG example](https://github.com/JayZeeDesign/microsoft-a
 
 ## 📈 Roadmap
 
-1. Refine workflow and data pass through to agents
-2. Reduce unnecessary back and forth
-3. Save files to local folder
-4. Implement other agents, see commented out agents
-6. Create and train fine-tuned agents for each domain specific task
+[x] (Refine workflow and data pass through to agents)
+[x] (Reduce unnecessary back and forth)
+[ ] (Implement alternative and local LLM models)
+[ ] (Save files to local folder)
+[ ] (Implement other agents, see commented out agents)
+[ ] (Create and train fine-tuned agents for each domain specific task)
+[ ] (Add more tools for agents to utilize)
+[ ] (Create UI for project)
 
 ## 📝 License 
 
