@@ -15,3 +15,4 @@ exp.py
 imgs/*
 scrape.py
 ui/
+__pycache__

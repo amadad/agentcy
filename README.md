@@ -74,6 +74,7 @@ Credit to [Jason Zhou's RAG example](https://github.com/JayZeeDesign/microsoft-a
 
 - [x] Refine workflow and data pass through to agents
 - [x] Reduce unnecessary back and forth
+- [x] Modularize code
 - [ ] Implement alternative and local LLM models
 - [ ] Save files to local folder
 - [ ] Implement other agents, see commented out agents
